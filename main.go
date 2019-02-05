@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var version = "undefined"
+var version = "0.5.0"
 
 // Flags
 var (
