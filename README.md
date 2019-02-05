@@ -84,3 +84,32 @@ RTE controller
   ```
 
 ## Usage
+
+Required connection:
+* connect DUT's power button pin to J11 header pin 9 (GPIO header with OC
+buffers)
+* connect DUT's reset pin to J11 pin 8 (GPIO header with OC buffers)
+* connect DUT's power supply to RTE J13 connector
+* connect RTE J12 connector with DUT's DC connector via DC Jack - DC Jack wire
+* (only for flashing procedure) connect DUT's SPI header with RTE J7 SPI header
+
+Open in browser: `<RTE_IP>:8000`
+
+![](https://3mdeb.com/wp-content/uploads/2019/02/REST-API.png)
+
+Buttons responsible for power control:
+
+```
+Power ON  - sends a pulse on power button pin to power on DUT
+Power OFF - ground power button pin on DUT to force it into ACPI S5 state
+Reset     - send a pulse on reset pin on DUT
+Relay     - toggles the RTE relay on/off deriving the power to DUT
+```
+
+Buttons responsible for flashing firmware:
+
+```
+Browse... - browse for file to flash DUT's firmware
+Upload    - uploads chosen file to RTE (required)
+Flash     - starts flashing firmware process
+```
