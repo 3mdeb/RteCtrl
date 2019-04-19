@@ -95,7 +95,7 @@ buffers)
 
 Open in browser: `<RTE_IP>:8000`
 
-![](https://3mdeb.com/wp-content/uploads/2019/02/REST-API.png)
+![](https://blog.3mdeb.com/img/REST-API.png)
 
 Buttons responsible for power control:
 
