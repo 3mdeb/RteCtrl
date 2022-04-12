@@ -60,15 +60,15 @@ func main() {
 	switch {
 	case *powerOnFlag:
 		log.Println("powering on")
-		pressButton(gpio, cfg.CommandIDs.Power, 100*time.Millisecond)
+		pressButton(gpio, cfg.CommandIDs.Power, 1*time.Second)
 		os.Exit(0)
 	case *powerOffFlag:
 		log.Println("powering off")
-		pressButton(gpio, cfg.CommandIDs.Power, 5*time.Second)
+		pressButton(gpio, cfg.CommandIDs.Power, 6*time.Second)
 		os.Exit(0)
 	case *resetFlag:
 		log.Println("resetting")
-		pressButton(gpio, cfg.CommandIDs.Reset, 100*time.Millisecond)
+		pressButton(gpio, cfg.CommandIDs.Reset, 1*time.Second)
 		os.Exit(0)
 	case *toggleRelayFlag:
 		log.Println("toggling relay")
