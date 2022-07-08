@@ -7,7 +7,6 @@ import (
 	"3mdeb/RteCtrl/pkg/restServer"
 	"flag"
 	"log"
-	"os"
 	"time"
 )
 
@@ -16,10 +15,6 @@ var version = "0.5.1"
 // Flags
 var (
 	configFilePath  = flag.String("c", "/etc/RteCtrl/RteCtrl.cfg", "path to config file")
-	toggleRelayFlag = flag.Bool("rel", false, "toggle relay")
-	powerOffFlag    = flag.Bool("poff", false, "power off the DUT")
-	powerOnFlag     = flag.Bool("pon", false, "power on the DUT")
-	resetFlag       = flag.Bool("reset", false, "reset DUT")
 )
 
 func pressButton(g *gpioControl.Gpio, id int, t time.Duration) {
@@ -55,25 +50,6 @@ func main() {
 	gpio, err := gpioControl.New(cfg.SysGpioPath, cfg.Gpios)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	switch {
-	case *powerOnFlag:
-		log.Println("powering on")
-		pressButton(gpio, cfg.CommandIDs.Power, 1*time.Second)
-		os.Exit(0)
-	case *powerOffFlag:
-		log.Println("powering off")
-		pressButton(gpio, cfg.CommandIDs.Power, 6*time.Second)
-		os.Exit(0)
-	case *resetFlag:
-		log.Println("resetting")
-		pressButton(gpio, cfg.CommandIDs.Reset, 1*time.Second)
-		os.Exit(0)
-	case *toggleRelayFlag:
-		log.Println("toggling relay")
-		toggleButton(gpio, cfg.CommandIDs.Relay)
-		os.Exit(0)
 	}
 
 	flash, err := flashromControl.New(cfg.FlashromBin)
