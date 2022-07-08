@@ -1,0 +1,105 @@
+#!/bin/bash
+
+PFX="api/v1"
+
+GPIO_RELAY=0
+GPIO_RESET=8
+GPIO_POWER=9
+
+RTE_IP="${RTE_IP:-127.0.0.1}"
+HOST="http://${RTE_IP}:8000"
+
+
+get() {
+    curl --silent -X GET $HOST/$PFX/$1
+}
+
+patch() {
+    curl -X PATCH $HOST/$PFX/$1 -d "$2"
+}
+
+put() {
+    curl -X PUT $HOST/$PFX/$1 -d "$2"
+}
+
+post_file() {
+    curl -X POST $HOST/$PFX/$1 -F "file=@$2"
+}
+
+delete() {
+    curl -X DELETE $HOST/$PFX/$1
+}
+
+post() {
+    curl -X POST $HOST/$PFX/$1
+}
+usage() {
+    echo "rte_ctrl"
+    echo "Usage: ${0} <command>"
+    echo ""
+    echo "Available commands:"
+    echo "    rel - toggles relay state"
+    echo "    pon - power on, high state on apu power button pin for 1s"
+    echo "    poff - power off, high state on apu power button pin for 6s"
+    echo "    reset - high state on apu reset pin for 1s"
+    echo "    list_gpios - prints all gpios and their attributes"
+    echo "    get_gpio X - prints gpio attributes, where X is the gpio id"
+    echo "    set_gpio X Y - sets state Y (0 or 1) to gpio of id X"
+    echo ""
+    echo "Set environmental variable RTE_IP to connect to that test server"
+}
+
+CMD="$1"
+
+case "$CMD" in
+"-h"|"--help")
+    usage
+    ;;
+"list_gpios")
+    get "gpio"
+    ;;
+"get_gpio")
+    get "gpio/$2"
+    ;;
+"set_gpio")
+    patch "gpio/$2" "{\"state\": $3}"
+    ;;
+"upload")
+    post_file "flash/file" "$2"
+    ;;
+"get_file")
+    get "flash/file"
+    ;;
+"flash")
+    out=`get "flash/file"`
+    put "flash" "$out"
+    ;;
+"get_flash")
+    get "flash"
+    ;;
+"rel")
+    gpio_state=$(get "gpio/$GPIO_RELAY" | python3 -c "import sys, json; print(json.load(sys.stdin)['state'])")
+
+    case $gpio_state in
+    0)
+        patch "gpio/$GPIO_RELAY" "{\"state\":1}"
+        ;;
+    1)
+        patch "gpio/$GPIO_RELAY" "{\"state\":0}"
+        ;;
+    esac
+    ;;
+"pon")
+    patch "gpio/$GPIO_POWER" "{\"state\": 1,\"time\": 1}"
+    ;;
+"poff")
+    patch "gpio/$GPIO_POWER" "{\"state\":1,\"time\": 6}"
+    ;;
+"reset")
+    patch "gpio/$GPIO_RESET" "{\"state\":1,\"time\": 1}"
+    ;;
+*)
+    echo "Invalid command: \"$1\""
+    echo ""
+    usage
+esac
