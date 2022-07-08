@@ -7,8 +7,8 @@ CMD_ID_RESET=8
 CMD_ID_POWER=9
 
 # TODO add host address as positional argument
-HOST=http://192.168.4.38:8000
-
+RTE_IP="${RTE_IP:-127.0.0.1}"
+HOST="http://${RTE_IP}:8000"
 
 get() {
     curl --silent -X GET $HOST/$PFX/$1
