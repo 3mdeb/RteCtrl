@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var version = "0.5.1"
+var version = "0.5.2"
 
 // Flags
 var (
