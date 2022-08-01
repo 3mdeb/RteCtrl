@@ -21,7 +21,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/throttled/throttled/v2"
 	"github.com/throttled/throttled/v2/store/memstore"
-	"github.com/hashicorp/golang-lru"
+	_ "github.com/hashicorp/golang-lru"
 )
 
 const restPrefix = "/api/v1"
