@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/throttled/throttled/v2"
-	"github.com/throttled/throttled/v2/store/memstore"
+	"github.com/throttled/throttled"
+	"github.com/throttled/throttled/store/memstore"
 )
 
 const restPrefix = "/api/v1"
