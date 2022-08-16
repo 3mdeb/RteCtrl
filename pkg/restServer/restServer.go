@@ -429,7 +429,7 @@ func Start(address, webDir string, g *gpioControl.Gpio, f *flashromControl.Flash
 		log.Fatal(err)
 	}
 	quota := throttled.RateQuota{
-		MaxRate:  throttled.PerSec(10),
+		MaxRate:  throttled.PerSec(5),
 		MaxBurst: 5,
 	}
 	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
