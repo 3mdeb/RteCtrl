@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SONOFF_IP=192.168.4.147
+SONOFF_IP=<write-ip-here>
 
 if [[ "$1" == "off" ]]; then
     wget -q -O - http://$SONOFF_IP/switch/sonoff_s20_relay/turn_off --method=POST
