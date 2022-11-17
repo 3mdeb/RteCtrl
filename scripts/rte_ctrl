@@ -102,4 +102,5 @@ case "$CMD" in
     echo "Invalid command: \"$1\""
     echo ""
     usage
+    exit 1
 esac
