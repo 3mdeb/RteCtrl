@@ -5,7 +5,7 @@ echo 0 > /sys/class/gpio/gpio199/value
 sleep 5                               
                           
 echo "start flash command"                                
-flashrom -p ch341a_spi --layout ptx01.layout -i bios -w $1
+flashrom -p ch341a_spi --layout flash.layout -i bios -w $1
                                                           
 #In place of $1 provide path to the binary
                                           
