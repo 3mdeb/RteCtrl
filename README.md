@@ -1,8 +1,6 @@
 RTE controller
 ==============
 
-[![Build Status](https://travis-ci.com/3mdeb/RteCtrl.svg?branch=master)](https://travis-ci.com/3mdeb/RteCtrl)
-
 ## General architecture
 
 ```
