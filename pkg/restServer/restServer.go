@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/throttled/throttled/v2"
+	"github.com/throttled/throttled/v2/store/memstore"
 )
 
 const restPrefix = "/api/v1"
@@ -422,6 +424,23 @@ func Start(address, webDir string, g *gpioControl.Gpio, f *flashromControl.Flash
 		log.Fatal(err)
 	}
 
+	store, err := memstore.New(65536)
+	if err != nil {
+		log.Fatal(err)
+	}
+	quota := throttled.RateQuota{
+		MaxRate:  throttled.PerSec(5),
+		MaxBurst: 5,
+	}
+	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
+	if err != nil {
+		log.Fatal(err)
+	}
+	httpRateLimiter := throttled.HTTPRateLimiter{
+		RateLimiter: rateLimiter,
+		VaryBy:      &throttled.VaryBy{Path: true},
+	}
+
 	router := mux.NewRouter()
 	router.Handle("/", fs).Methods("GET")
 	for _, file := range files {
@@ -441,5 +460,5 @@ func Start(address, webDir string, g *gpioControl.Gpio, f *flashromControl.Flash
 	router.HandleFunc(restPrefix+"/flash", logFunc(startFlashing)).Methods("PUT")
 	router.HandleFunc(restPrefix+"/flash", logFunc(getFlashingState)).Methods("GET")
 
-	http.ListenAndServe(address, router)
+	http.ListenAndServe(address, httpRateLimiter.RateLimit(router))
 }
