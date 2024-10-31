@@ -42,22 +42,22 @@ WP_RANGE="0,0x00800000"
 spiON() {
   echo "set SPI Vcc to 3.3V"
   # 0 - 1.8V   ,   1 - 3.3V
-  echo 1 > /sys/class/gpio/gpio405/value
+  echo 1 > /sys/class/gpio/gpio517/value
   sleep 1
   echo "SPI lines ON"
-  echo 1 > /sys/class/gpio/gpio404/value
+  echo 1 > /sys/class/gpio/gpio516/value
   sleep 1
   echo "SPI Vcc ON"
-  echo 1 > /sys/class/gpio/gpio406/value
+  echo 1 > /sys/class/gpio/gpio518/value
   sleep 2
 }
 
 spiOFF() {
   echo "SPI Vcc OFF"
-  echo 0 > /sys/class/gpio/gpio406/value
+  echo 0 > /sys/class/gpio/gpio518/value
   echo "SPI lines OFF"
-  echo 0 > /sys/class/gpio/gpio404/value
-  echo 0 > /sys/class/gpio/gpio405/value
+  echo 0 > /sys/class/gpio/gpio516/value
+  echo 0 > /sys/class/gpio/gpio517/value
 }
 
 CMD="$1"
@@ -130,15 +130,15 @@ case "$CMD" in
   ;;
   "wp-high")
     echo "Setting WP pin HIGH ..."
-    echo "out" > /sys/class/gpio/gpio402/direction
+    echo "out" > /sys/class/gpio/gpio514/direction
     # deassert WP pin to disable hardware protection of status registers
-    echo "1" > /sys/class/gpio/gpio402/value
+    echo "1" > /sys/class/gpio/gpio514/value
   ;;
   "wp-low")
     echo "Setting WP pin LOW ..."
-    echo "out" > /sys/class/gpio/gpio402/direction
+    echo "out" > /sys/class/gpio/gpio514/direction
     # assert WP pin to enable hardware protection of status registers
-    echo "0"  > /sys/class/gpio/gpio402/value
+    echo "0"  > /sys/class/gpio/gpio514/value
   ;;
   *)
     echo "Command \"$CMD\" is not supported"
