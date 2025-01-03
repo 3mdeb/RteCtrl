@@ -408,9 +408,8 @@ func logFunc(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWrite
 	}
 }
 
-func Start(address, webDir string, g *gpioControl.Gpio, f *flashromControl.Flashrom) {
+func Start(address, webDir string, gpio gpioControl.IGpio, f *flashromControl.Flashrom) {
 
-	gpio = g
 	flash = f
 
 	tempRomFile = fmt.Sprintf("%s/%s", os.TempDir(), romFilename)

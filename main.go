@@ -50,9 +50,21 @@ func main() {
 
 	log.Println("GPIO type:", cfg.GpioType)
 
-	gpio, err := gpioControl.New(cfg.SysGpioPath, cfg.Gpios)
-	if err != nil {
-		log.Fatal(err)
+	var gpio gpioControl.IGpio
+
+	switch cfg.GpioType {
+	case "sysfs":
+		gpio, err = gpioControl.New(cfg.SysGpioPath, cfg.Gpios)
+		if err != nil {
+			log.Fatal(err)
+		}
+	case "chardev":
+		gpio, err = gpioControl.New(cfg.SysGpioPath, cfg.Gpios)
+		if err != nil {
+			log.Fatal(err)
+		}
+	default:
+		log.Fatalf("ERROR! gpio_type should be one of the accepted values: [sysfs/chardev]. Current value is '%v'", cfg.GpioType)
 	}
 
 	flash, err := flashromControl.New(cfg.FlashromBin)
