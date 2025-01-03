@@ -4,6 +4,8 @@ import (
 	"3mdeb/RteCtrl/pkg/config"
 	"3mdeb/RteCtrl/pkg/flashromControl"
 	"3mdeb/RteCtrl/pkg/gpioControl"
+
+	// "3mdeb/RteCtrl/pkg/gpioChardev"
 	"3mdeb/RteCtrl/pkg/restServer"
 	"flag"
 	"log"
@@ -14,7 +16,7 @@ var version = "0.5.2"
 
 // Flags
 var (
-	configFilePath  = flag.String("c", "/etc/RteCtrl/RteCtrl.cfg", "path to config file")
+	configFilePath = flag.String("c", "/etc/RteCtrl/RteCtrl.cfg", "path to config file")
 )
 
 func pressButton(g *gpioControl.Gpio, id int, t time.Duration) {
@@ -38,14 +40,15 @@ func main() {
 
 	flag.Parse()
 
-	log.Println("RteCtrl version:", version);
-
+	log.Println("RteCtrl version:", version)
 	log.Println("reading", *configFilePath)
 
 	cfg, err := config.NewConfig(*configFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	log.Println("GPIO type:", cfg.GpioType)
 
 	gpio, err := gpioControl.New(cfg.SysGpioPath, cfg.Gpios)
 	if err != nil {
