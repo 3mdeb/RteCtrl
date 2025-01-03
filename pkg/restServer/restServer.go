@@ -24,7 +24,7 @@ import (
 const restPrefix = "/api/v1"
 const romFilename = "rte_romfile.rom"
 
-var gpio *gpioControl.Gpio
+var gpio *gpioControl.GpioSysfs
 var flash *flashromControl.Flashrom
 var tempRomFile string
 

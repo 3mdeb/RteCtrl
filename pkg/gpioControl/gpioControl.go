@@ -12,12 +12,12 @@ type pin struct {
 	description string
 }
 
-type Gpio struct {
+type GpioSysfs struct {
 	sysGpioPath string
 	gpios       map[int]pin
 }
 
-var ctrl = Gpio{
+var ctrl = GpioSysfs{
 	sysGpioPath: "/sys/class/gpio",
 }
 
@@ -37,7 +37,7 @@ func checkGpio(sysGpio uint) bool {
 	return false
 }
 
-func New(gpioPath string, cfg []config.PinConfig) (*Gpio, error) {
+func NewGpioSysfs(gpioPath string, cfg []config.PinConfig) (*GpioSysfs, error) {
 	if gpioPath != "" {
 		ctrl.sysGpioPath = gpioPath
 	}
@@ -71,7 +71,7 @@ func New(gpioPath string, cfg []config.PinConfig) (*Gpio, error) {
 	return &ctrl, nil
 }
 
-func (ctrl *Gpio) SetDirection(id int, direction string) error {
+func (ctrl *GpioSysfs) SetDirection(id int, direction string) error {
 	target := fmt.Sprintf("%s/gpio%d/direction", ctrl.sysGpioPath, ctrl.gpios[id].sysNum)
 	var d string
 	switch direction {
@@ -88,7 +88,7 @@ func (ctrl *Gpio) SetDirection(id int, direction string) error {
 	return err
 }
 
-func (ctrl *Gpio) GetDirection(id int) (string, error) {
+func (ctrl *GpioSysfs) GetDirection(id int) (string, error) {
 	target := fmt.Sprintf("%s/gpio%d/direction", ctrl.sysGpioPath, ctrl.gpios[id].sysNum)
 	dat, err := ioutil.ReadFile(target)
 	if err != nil {
@@ -105,7 +105,7 @@ func (ctrl *Gpio) GetDirection(id int) (string, error) {
 	return val, err
 }
 
-func (ctrl *Gpio) SetState(id int, state uint) error {
+func (ctrl *GpioSysfs) SetState(id int, state uint) error {
 	dir, err := ctrl.GetDirection(id)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func (ctrl *Gpio) SetState(id int, state uint) error {
 	return err
 }
 
-func (ctrl *Gpio) GetState(id int) (uint, error) {
+func (ctrl *GpioSysfs) GetState(id int) (uint, error) {
 	target := fmt.Sprintf("%s/gpio%d/value", ctrl.sysGpioPath, ctrl.gpios[id].sysNum)
 	dat, err := ioutil.ReadFile(target)
 	if err != nil {
@@ -149,10 +149,10 @@ func (ctrl *Gpio) GetState(id int) (uint, error) {
 	return 0, nil
 }
 
-func (ctrl *Gpio) GetNumberOfGpios() int {
+func (ctrl *GpioSysfs) GetNumberOfGpios() int {
 	return len(ctrl.gpios)
 }
 
-func (ctrl *Gpio) GetDescription(id int) string {
+func (ctrl *GpioSysfs) GetDescription(id int) string {
 	return ctrl.gpios[id].description
 }
