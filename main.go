@@ -4,8 +4,6 @@ import (
 	"3mdeb/RteCtrl/pkg/config"
 	"3mdeb/RteCtrl/pkg/flashromControl"
 	"3mdeb/RteCtrl/pkg/gpioControl"
-
-	// "3mdeb/RteCtrl/pkg/gpioChardev"
 	"3mdeb/RteCtrl/pkg/restServer"
 	"flag"
 	"log"
