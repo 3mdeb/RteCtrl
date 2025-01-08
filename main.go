@@ -7,6 +7,7 @@ import (
 	"3mdeb/RteCtrl/pkg/restServer"
 	"flag"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -46,6 +47,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if !strings.Contains("sysgs;chardev", cfg.GpioType) {
+		log.Fatalf("Configuration Error! "+
+			"The 'gpio_type' should be one of the accepted values: "+
+			"[sysfs/chardev]. Current value is '%v'", cfg.GpioType)
+	}
+
 	log.Println("GPIO type:", cfg.GpioType)
 
 	var gpio gpioControl.IGpio
@@ -62,9 +69,7 @@ func main() {
 			log.Fatal(err)
 		}
 	default:
-		log.Fatalf("Configuration Error! "+
-			"The 'gpio_type' should be one of the accepted values: "+
-			"[sysfs/chardev]. Current value is '%v'", cfg.GpioType)
+		log.Fatalf("Error! GPIO interface '%v' is not implemented!", cfg.GpioType)
 	}
 
 	flash, err := flashromControl.New(cfg.FlashromBin)
