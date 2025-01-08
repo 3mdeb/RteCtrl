@@ -214,14 +214,13 @@ func setGpioState(w http.ResponseWriter, r *http.Request) {
 func uploadFile(w http.ResponseWriter, r *http.Request) {
 	out := json.NewEncoder(w)
 	rf, _, err := r.FormFile("file")
+	defer rf.Close()
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusNotFound)
 		out.Encode(errorStatus{Error: errCantUploadFile})
 		return
 	}
-	defer rf.Close()
-
 	h := md5.New()
 
 	tee := io.TeeReader(rf, h)
