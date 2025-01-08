@@ -69,6 +69,11 @@ RTE controller
 
 * Install `config/RteCtrl.cfg` to `/etc/RteCtrl/RteCtrl.cfg`
 
+* [Optional] If you want to select a specific gpio interface, in the
+  `RteCtrl.cfg` config set the `gpio_type` field to either `sysfs` or
+  `chardev`. The sysfs interace is configured by default, but is
+  deprecated.
+
 * Install `web` directory to path pointed in `RteCtrl.cfg`:
 
   ```
