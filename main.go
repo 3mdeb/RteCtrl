@@ -62,7 +62,9 @@ func main() {
 			log.Fatal(err)
 		}
 	default:
-		log.Fatalf("ERROR! gpio_type should be one of the accepted values: [sysfs/chardev]. Current value is '%v'", cfg.GpioType)
+		log.Fatalf("Configuration Error! "+
+			"The 'gpio_type' should be one of the accepted values: "+
+			"[sysfs/chardev]. Current value is '%v'", cfg.GpioType)
 	}
 
 	flash, err := flashromControl.New(cfg.FlashromBin)
