@@ -38,7 +38,7 @@ func NewGpioChardev(gpioPath string, cfg []config.PinConfig) (*GpioChardev, erro
 
 	for _, val := range cfg {
 		newPin := pin{sysNum: val.SysGpio, description: val.Description}
-		ctrl.gpios[val.ID] = newPin
+		ctrlChardev.gpios[val.ID] = newPin
 
 		// Check if pin can be found on the system
 		pinName := GetGpioName(val.SysGpio)
