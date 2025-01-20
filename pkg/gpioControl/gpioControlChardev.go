@@ -36,6 +36,18 @@ func NewGpioChardev(gpioPath string, cfg []config.PinConfig) (*GpioChardev, erro
 	ctrlChardev.gpios = make(map[int]pin)
 	ctrlChardev.pinDirection = make(map[int]string)
 
+	// Debug print all available pins
+	if len(gpioreg.All()) > 0 {
+		fmt.Println("Available pins (via chardev):")
+		fmt.Println("(Index | Pin Name)")
+		for i, pinIo := range gpioreg.All() {
+			fmt.Printf("%v) %v\n", i, pinIo.Name())
+		}
+	} else {
+		fmt.Println("(WARNING) No available pins detected on this platform (by grioreg)!")
+	}
+
+
 	for _, val := range cfg {
 		newPin := pin{sysNum: val.SysGpio, description: val.Description}
 		ctrlChardev.gpios[val.ID] = newPin
@@ -72,15 +84,25 @@ func (ctrl *GpioChardev) GetPinNameByID(id int) string {
 
 func (ctrl *GpioChardev) SetDirection(id int, direction string) error {
 	pinID := ctrl.GetPinNumByID(id)
-	pin := gpioreg.ByName(ctrl.GetPinNameByID(id))
+	pinName := ctrl.GetPinNameByID(id)
+	pin := gpioreg.ByName(pinName)
+
+	if pin == nil {
+		return fmt.Errorf("error initializing pin with id: %d, name: %v", id, pinName)
+	}
 
 	switch direction {
 	case "out", "o":
-		pin.Out(gpio.Low)
+		fmt.Printf("Setting pin %d direction to %v\n", id, direction)
+		if err := pin.Out(gpio.Low); err != nil {
+			fmt.Println("Error setting pin output:", err)
+		}
 	case "in", "i":
 		fallthrough
 	default:
-		pin.In(gpio.PullNoChange, gpio.NoEdge)
+		if err := pin.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+			fmt.Println("Error setting pin output:", err)
+		}
 	}
 	ctrl.pinDirection[int(pinID)] = direction
 
