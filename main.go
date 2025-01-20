@@ -47,7 +47,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if !strings.Contains("sysgs;chardev", cfg.GpioType) {
+	if !strings.Contains("sysfs;chardev", cfg.GpioType) {
 		log.Fatalf("Configuration Error! "+
 			"The 'gpio_type' should be one of the accepted values: "+
 			"[sysfs/chardev]. Current value is '%v'", cfg.GpioType)
