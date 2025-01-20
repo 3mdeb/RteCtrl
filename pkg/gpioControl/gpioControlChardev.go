@@ -94,7 +94,7 @@ func (ctrl *GpioChardev) GetDirection(id int) (string, error) {
 		return val, nil
 	}
 
-	return "", fmt.Errorf("Cannot get the last saved state for pin with id %d", id)
+	return "", fmt.Errorf("cannot get the last saved state for pin with id %d", id)
 }
 
 func (ctrl *GpioChardev) SetState(id int, state uint) error {
@@ -114,7 +114,7 @@ func (ctrl *GpioChardev) SetState(id int, state uint) error {
 	case 1:
 		pin.Out(gpio.High)
 	default:
-		err = fmt.Errorf("Unsupported state: %d; Supported states are: [0, 1]")
+		err = fmt.Errorf("unsupported state: %d; Supported states are: [0, 1]", state)
 		return err
 	}
 
@@ -130,7 +130,7 @@ func (ctrl *GpioChardev) GetState(id int) (uint, error) {
 	} else if state == gpio.Low {
 		return 0, nil
 	} else {
-		return 0, fmt.Errorf("Unknown state of the pin: %v", state)
+		return 0, fmt.Errorf("unknown state of the pin: %v", state)
 	}
 }
 
