@@ -3,157 +3,128 @@ package gpioControl
 import (
 	"3mdeb/RteCtrl/pkg/config"
 	"fmt"
-	"periph.io/x/conn/v3/driver/driverreg"
-	"periph.io/x/conn/v3/gpio"
-	"periph.io/x/conn/v3/gpio/gpioreg"
+
+	"github.com/warthog618/go-gpiocdev"
 )
 
 type GpioChardev struct {
-	sysGpioPath  string
-	gpios        map[int]pin
-	pinDirection map[int]string
-}
-
-func GetGpioName(gpioNum uint) string {
-	return "GPIO" + fmt.Sprintf("%d", gpioNum)
-}
-
-func NewGpioChardev(gpioPath string, cfg []config.PinConfig) (*GpioChardev, error) {
-	if _, err := driverreg.Init(); err != nil {
-		return nil, err
-	}
-
-	if gpioPath != "" {
-		ctrl.sysGpioPath = gpioPath
-	}
-	var err error
-
-	ctrlChardev := GpioChardev{
-		sysGpioPath: gpioPath,
-		gpios:       make(map[int]pin),
-	}
-
-	ctrlChardev.gpios = make(map[int]pin)
-	ctrlChardev.pinDirection = make(map[int]string)
-
-	// Debug print all available pins
-	if len(gpioreg.All()) > 0 {
-		fmt.Println("Available pins (via chardev):")
-		fmt.Println("(Index | Pin Name)")
-		for i, pinIo := range gpioreg.All() {
-			fmt.Printf("%v) %v\n", i, pinIo.Name())
-		}
-	} else {
-		fmt.Println("(WARNING) No available pins detected on this platform (by grioreg)!")
-	}
-
-
-	for _, val := range cfg {
-		newPin := pin{sysNum: val.SysGpio, description: val.Description}
-		ctrlChardev.gpios[val.ID] = newPin
-
-		// Check if pin can be found on the system
-		pinName := GetGpioName(val.SysGpio)
-		pin := gpioreg.ByName(pinName)
-		if pin != nil {
-			return nil, err // Return error if we can't find the GPIO pin
-		}
-
-		err = ctrlChardev.SetDirection(val.ID, val.Direction)
-		if err != nil {
-			return nil, err
-		}
-
-		err = ctrlChardev.SetState(val.ID, val.InitValue)
-		if err != nil {
-			return nil, err
-		}
-
-	}
-
-	return &ctrlChardev, nil
+	sysGpioPath string
+	gpios       map[int]pin
+	lines       *gpiocdev.Lines
+	offsets     []int
 }
 
 func (ctrl *GpioChardev) GetPinNumByID(id int) uint {
 	return ctrl.gpios[id].sysNum
 }
 
-func (ctrl *GpioChardev) GetPinNameByID(id int) string {
-	return GetGpioName(ctrl.gpios[id].sysNum)
+func indexOf(element int, data []int) int {
+	for k, v := range data {
+		if element == v {
+			return k
+		}
+	}
+	return -1 //not found.
+}
+
+func NewGpioChardev(gpioPath string, cfg []config.PinConfig) (*GpioChardev, error) {
+	if gpioPath != "" {
+		ctrl.sysGpioPath = gpioPath
+	}
+
+	pins := []int{}
+	for _, val := range cfg {
+		pins = append(pins, int(val.SysGpio))
+	}
+	gotLines, err := gpiocdev.RequestLines("gpiochip0", pins)
+
+	if err != nil {
+		fmt.Println("Error while initializing pins! Requested pins:")
+    for index, val := range cfg {
+			fmt.Printf("%d) %v - %v\n", index, val.SysGpio, val.Description)
+		}
+		return nil, err
+	}
+
+	ctrlChardev := GpioChardev{
+		sysGpioPath: gpioPath,
+		gpios:       make(map[int]pin),
+		lines:       gotLines,
+		offsets:     pins,
+	}
+
+	return &ctrlChardev, nil
 }
 
 func (ctrl *GpioChardev) SetDirection(id int, direction string) error {
-	pinID := ctrl.GetPinNumByID(id)
-	pinName := ctrl.GetPinNameByID(id)
-	pin := gpioreg.ByName(pinName)
+	pinID := int(ctrl.GetPinNumByID(id))
+	fmt.Printf("Setting pin %d direction to %v\n", pinID, direction)
 
-	if pin == nil {
-		return fmt.Errorf("error initializing pin with id: %d, name: %v", id, pinName)
-	}
-
+	var err error = nil
 	switch direction {
 	case "out", "o":
-		fmt.Printf("Setting pin %d direction to %v\n", id, direction)
-		if err := pin.Out(gpio.Low); err != nil {
-			fmt.Println("Error setting pin output:", err)
-		}
+		err = ctrl.lines.Reconfigure(gpiocdev.WithLines([]int{pinID}), gpiocdev.AsOutput())
+
 	case "in", "i":
 		fallthrough
 	default:
-		if err := pin.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
-			fmt.Println("Error setting pin output:", err)
-		}
+		err = ctrl.lines.Reconfigure(gpiocdev.WithLines([]int{pinID}), gpiocdev.AsInput)
 	}
-	ctrl.pinDirection[int(pinID)] = direction
 
-	return nil
+	return err
 }
 
 func (ctrl *GpioChardev) GetDirection(id int) (string, error) {
-	pinID := ctrl.GetPinNumByID(id)
-	val, ok := ctrl.pinDirection[int(pinID)]
-	if ok {
-		return val, nil
+	linesInfo, err := ctrl.lines.Info()
+
+	if err != nil {
+		return "", fmt.Errorf("error getting lines info")
 	}
 
-	return "", fmt.Errorf("cannot get the last saved state for pin with id %d", id)
+	pinID := int(ctrl.GetPinNumByID(id))
+	// Search for our pin
+	for _, lineInfo := range linesInfo {
+		if lineInfo.Offset == pinID {
+			switch lineInfo.Config.Direction {
+			case gpiocdev.LineDirectionOutput:
+				return "out", nil
+			case gpiocdev.LineDirectionInput:
+				return "in", nil
+			default:
+				return "", fmt.Errorf("unknown pin state: %v", lineInfo.Offset)
+			}
+		}
+	}
+
+	return "", fmt.Errorf("error getting direction for pin %d. Pin info is not found", pinID)
 }
 
 func (ctrl *GpioChardev) SetState(id int, state uint) error {
-	dir, err := ctrl.GetDirection(id)
+	pinID := int(ctrl.GetPinNumByID(id))
+	err := ctrl.lines.Reconfigure(gpiocdev.WithLines([]int{pinID}), gpiocdev.AsOutput(int(state)))
+
 	if err != nil {
-		return err
-	}
-	if dir == "in" {
-		return nil
-	}
-
-	pin := gpioreg.ByName(GetGpioName(ctrl.GetPinNumByID(id)))
-
-	switch state {
-	case 0:
-		pin.Out(gpio.Low)
-	case 1:
-		pin.Out(gpio.High)
-	default:
-		err = fmt.Errorf("unsupported state: %d; Supported states are: [0, 1]", state)
-		return err
+		return fmt.Errorf("error setting pin %d state to %d", pinID, state)
 	}
 
 	return nil
 }
 
 func (ctrl *GpioChardev) GetState(id int) (uint, error) {
-	pin := gpioreg.ByName(GetGpioName(ctrl.GetPinNumByID(id)))
-	state := pin.Read()
+	gotValues := []int{}
+	err := ctrl.lines.Values(gotValues)
 
-	if state == gpio.High {
-		return 1, nil
-	} else if state == gpio.Low {
-		return 0, nil
-	} else {
-		return 0, fmt.Errorf("unknown state of the pin: %v", state)
+	if err != nil {
+		return 0, fmt.Errorf("error getting lines values")
 	}
+
+	pinID := int(ctrl.GetPinNumByID(id))
+	index := indexOf(pinID, ctrl.offsets)
+	if index == -1 {
+		return 0, fmt.Errorf("Error finding the index of pin %d in %v", pinID, ctrl.offsets)
+	}
+
+	return uint(gotValues[index]), nil
 }
 
 func (ctrl *GpioChardev) GetNumberOfGpios() int {
