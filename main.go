@@ -78,5 +78,10 @@ func main() {
 	}
 
 	log.Println("starting server on", cfg.ServerAddress)
-	restServer.Start(cfg.ServerAddress, cfg.WebDir, gpio, flash)
+	server := restServer.RestServer{
+		Gpio:       gpio,
+		RestPrefix: "/api/v1",
+		RomFilename: "rte_romfile.rom",
+	}
+	server.Start(cfg.ServerAddress, cfg.WebDir, flash)
 }
