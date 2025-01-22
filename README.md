@@ -74,6 +74,14 @@ RTE controller
   `chardev`. The sysfs interace is configured by default, but is
   deprecated.
 
+* [Note] if you want to use the `chardev` interface, you may need to
+  unexport you gpio pins first. Example: `echo "400" >
+  /sys/class/gpio/unexport`
+
+  There is a helper script `unexport_all_pins.sh`, which can be ***executed
+  on the rte platform*** to unexport all used pins, but may not cover the
+  edge-cases.
+
 * Install `web` directory to path pointed in `RteCtrl.cfg`:
 
   ```
