@@ -3,10 +3,13 @@ package main
 import (
 	"3mdeb/RteCtrl/pkg/config"
 	"3mdeb/RteCtrl/pkg/flashromControl"
-	"3mdeb/RteCtrl/pkg/gpioControl"
+	"3mdeb/RteCtrl/pkg/gpiocontrol/chardev"
+	"3mdeb/RteCtrl/pkg/gpiocontrol/iface"
+	"3mdeb/RteCtrl/pkg/gpiocontrol/sysfs"
 	"3mdeb/RteCtrl/pkg/restServer"
 	"flag"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -14,17 +17,17 @@ var version = "0.5.2"
 
 // Flags
 var (
-	configFilePath  = flag.String("c", "/etc/RteCtrl/RteCtrl.cfg", "path to config file")
+	configFilePath = flag.String("c", "/etc/RteCtrl/RteCtrl.cfg", "path to config file")
 )
 
-func pressButton(g *gpioControl.Gpio, id int, t time.Duration) {
+func pressButton(g *sysfs.GpioSysfs, id int, t time.Duration) {
 	g.SetDirection(id, "out")
 	g.SetState(id, 1)
 	time.Sleep(t)
 	g.SetState(id, 0)
 }
 
-func toggleButton(g *gpioControl.Gpio, id int) {
+func toggleButton(g *sysfs.GpioSysfs, id int) {
 	g.SetDirection(id, "out")
 	val, _ := g.GetState(id)
 	if val == 0 {
@@ -38,8 +41,7 @@ func main() {
 
 	flag.Parse()
 
-	log.Println("RteCtrl version:", version);
-
+	log.Println("RteCtrl version:", version)
 	log.Println("reading", *configFilePath)
 
 	cfg, err := config.NewConfig(*configFilePath)
@@ -47,9 +49,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	gpio, err := gpioControl.New(cfg.SysGpioPath, cfg.Gpios)
-	if err != nil {
-		log.Fatal(err)
+	if !strings.Contains("sysfs;chardev", cfg.GpioInterface) {
+		log.Fatalf("Configuration Error! "+
+			"The 'gpio_type' should be one of the accepted values: "+
+			"[sysfs/chardev]. Current value is '%v'", cfg.GpioInterface)
+	}
+
+	log.Println("GPIO type:", cfg.GpioInterface)
+
+	var gpio iface.IGpio
+
+	switch cfg.GpioInterface {
+	case "sysfs":
+		gpio, err = sysfs.NewGpioSysfs(cfg.SysGpioPath, cfg.Gpios)
+		if err != nil {
+			log.Fatal(err)
+		}
+	case "chardev":
+		gpio, err = chardev.NewGpioChardev(cfg.SysGpioPath, cfg.Gpios)
+		if err != nil {
+			log.Fatal(err)
+		}
+	default:
+		log.Fatalf("Error! GPIO interface '%v' is not implemented!", cfg.GpioInterface)
 	}
 
 	flash, err := flashromControl.New(cfg.FlashromBin)
@@ -58,5 +80,10 @@ func main() {
 	}
 
 	log.Println("starting server on", cfg.ServerAddress)
-	restServer.Start(cfg.ServerAddress, cfg.WebDir, gpio, flash)
+	server := restServer.RestServer{
+		Gpio:        gpio,
+		RestPrefix:  "/api/v1",
+		RomFilename: "rte_romfile.rom",
+	}
+	server.Start(cfg.ServerAddress, cfg.WebDir, flash)
 }

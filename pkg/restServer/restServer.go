@@ -2,7 +2,7 @@ package restServer
 
 import (
 	"3mdeb/RteCtrl/pkg/flashromControl"
-	"3mdeb/RteCtrl/pkg/gpioControl"
+	iface "3mdeb/RteCtrl/pkg/gpiocontrol/iface"
 	"compress/gzip"
 	"crypto/md5"
 	"encoding/json"
@@ -21,10 +21,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const restPrefix = "/api/v1"
-const romFilename = "rte_romfile.rom"
+type RestServer struct {
+	RestPrefix  string
+	RomFilename string
+	Gpio        iface.IGpio
+}
 
-var gpio *gpioControl.Gpio
 var flash *flashromControl.Flashrom
 var tempRomFile string
 
@@ -87,19 +89,19 @@ var currentFileDetails = fileDetails{
 	Size:     0,
 }
 
-func listAllGpios(w http.ResponseWriter, r *http.Request) {
-	gpios := make([]gpioState, gpio.GetNumberOfGpios())
+func (server *RestServer) listAllGpios(w http.ResponseWriter, r *http.Request) {
+	gpios := make([]gpioState, server.Gpio.GetNumberOfGpios())
 	var err error
 	out := json.NewEncoder(w)
 
 	for i := range gpios {
 		gpios[i].ID = i
-		gpios[i].Description = gpio.GetDescription(i)
-		gpios[i].Direction, err = gpio.GetDirection(i)
+		gpios[i].Description = server.Gpio.GetDescription(i)
+		gpios[i].Direction, err = server.Gpio.GetDirection(i)
 		if err != nil {
 			break
 		}
-		gpios[i].State, err = gpio.GetState(i)
+		gpios[i].State, err = server.Gpio.GetState(i)
 		if err != nil {
 			break
 		}
@@ -115,7 +117,7 @@ func listAllGpios(w http.ResponseWriter, r *http.Request) {
 	out.Encode(gpios)
 }
 
-func getGpioState(w http.ResponseWriter, r *http.Request) {
+func (server *RestServer) getGpioState(w http.ResponseWriter, r *http.Request) {
 	out := json.NewEncoder(w)
 
 	params := mux.Vars(r)
@@ -133,15 +135,15 @@ func getGpioState(w http.ResponseWriter, r *http.Request) {
 	var g gpioState
 
 	g.ID = id
-	g.Description = gpio.GetDescription(id)
-	g.Direction, err = gpio.GetDirection(id)
+	g.Description = server.Gpio.GetDescription(id)
+	g.Direction, err = server.Gpio.GetDirection(id)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusNotFound)
 		out.Encode(errorStatus{Error: errCantReadGpioStates})
 		return
 	}
-	g.State, err = gpio.GetState(id)
+	g.State, err = server.Gpio.GetState(id)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusNotFound)
@@ -152,7 +154,7 @@ func getGpioState(w http.ResponseWriter, r *http.Request) {
 	out.Encode(g)
 }
 
-func setGpioState(w http.ResponseWriter, r *http.Request) {
+func (server *RestServer) setGpioState(w http.ResponseWriter, r *http.Request) {
 	out := json.NewEncoder(w)
 	params := mux.Vars(r)
 
@@ -178,7 +180,7 @@ func setGpioState(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if g.Direction != "" {
-		err = gpio.SetDirection(id, g.Direction)
+		err = server.Gpio.SetDirection(id, g.Direction)
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusNotFound)
@@ -187,7 +189,7 @@ func setGpioState(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = gpio.SetState(id, g.State)
+	err = server.Gpio.SetState(id, g.State)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusNotFound)
@@ -202,13 +204,13 @@ func setGpioState(w http.ResponseWriter, r *http.Request) {
 			<-timer.C
 			log.Println("setGpioState: timer fired")
 			if g.State == 0 {
-				gpio.SetState(id, 1)
+				server.Gpio.SetState(id, 1)
 			} else {
-				gpio.SetState(id, 0)
+				server.Gpio.SetState(id, 0)
 			}
 		}()
 	}
-	getGpioState(w, r)
+	server.getGpioState(w, r)
 }
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
@@ -220,8 +222,6 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 		out.Encode(errorStatus{Error: errCantUploadFile})
 		return
 	}
-	defer rf.Close()
-
 	h := md5.New()
 
 	tee := io.TeeReader(rf, h)
@@ -402,18 +402,19 @@ func getFlashingState(w http.ResponseWriter, r *http.Request) {
 func logFunc(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		fName := runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
-		log.Printf("request [%s]: %s", r.Method, strings.Split(fName, ".")[1])
+		var fName string = runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+		fName = strings.Join(strings.Split(fName, ".")[1:], "")
+
+		log.Printf("request [%s]: %s", r.Method, fName)
 		f(w, r)
 	}
 }
 
-func Start(address, webDir string, g *gpioControl.Gpio, f *flashromControl.Flashrom) {
+func (server *RestServer) Start(address, webDir string, f *flashromControl.Flashrom) {
 
-	gpio = g
 	flash = f
 
-	tempRomFile = fmt.Sprintf("%s/%s", os.TempDir(), romFilename)
+	tempRomFile = fmt.Sprintf("%s/%s", os.TempDir(), server.RomFilename)
 
 	fs := http.FileServer(http.Dir(webDir))
 
@@ -428,18 +429,18 @@ func Start(address, webDir string, g *gpioControl.Gpio, f *flashromControl.Flash
 		router.Handle("/"+file.Name(), fs).Methods("GET")
 	}
 
-	router.HandleFunc(restPrefix+"/gpio", logFunc(listAllGpios)).Methods("GET")
-	router.HandleFunc(restPrefix+"/gpio/{id}", logFunc(getGpioState)).Methods("GET")
-	router.HandleFunc(restPrefix+"/gpio/{id}", logFunc(setGpioState)).Methods("PATCH")
+	router.HandleFunc(server.RestPrefix+"/gpio", logFunc(server.listAllGpios)).Methods("GET")
+	router.HandleFunc(server.RestPrefix+"/gpio/{id}", logFunc(server.getGpioState)).Methods("GET")
+	router.HandleFunc(server.RestPrefix+"/gpio/{id}", logFunc(server.setGpioState)).Methods("PATCH")
 
-	router.HandleFunc(restPrefix+"/flash/file", logFunc(uploadFile)).Methods("POST")
-	router.HandleFunc(restPrefix+"/flash/file", logFunc(getFileDetails)).Methods("GET")
-	router.HandleFunc(restPrefix+"/flash/file", logFunc(removeFile)).Methods("DELETE")
+	router.HandleFunc(server.RestPrefix+"/flash/file", logFunc(uploadFile)).Methods("POST")
+	router.HandleFunc(server.RestPrefix+"/flash/file", logFunc(getFileDetails)).Methods("GET")
+	router.HandleFunc(server.RestPrefix+"/flash/file", logFunc(removeFile)).Methods("DELETE")
 
-	router.HandleFunc(restPrefix+"/flash/config", logFunc(getFlasherConfig)).Methods("GET")
-	router.HandleFunc(restPrefix+"/flash/config", logFunc(setFlasherConfig)).Methods("PATCH")
-	router.HandleFunc(restPrefix+"/flash", logFunc(startFlashing)).Methods("PUT")
-	router.HandleFunc(restPrefix+"/flash", logFunc(getFlashingState)).Methods("GET")
+	router.HandleFunc(server.RestPrefix+"/flash/config", logFunc(getFlasherConfig)).Methods("GET")
+	router.HandleFunc(server.RestPrefix+"/flash/config", logFunc(setFlasherConfig)).Methods("PATCH")
+	router.HandleFunc(server.RestPrefix+"/flash", logFunc(startFlashing)).Methods("PUT")
+	router.HandleFunc(server.RestPrefix+"/flash", logFunc(getFlashingState)).Methods("GET")
 
 	http.ListenAndServe(address, router)
 }

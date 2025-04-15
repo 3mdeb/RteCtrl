@@ -1,24 +1,20 @@
-package gpioControl
+package sysfs
 
 import (
 	"3mdeb/RteCtrl/pkg/config"
+	"3mdeb/RteCtrl/pkg/gpiocontrol/type"
 	"fmt"
 	"io/ioutil"
 	"os"
 )
 
-type pin struct {
-	sysNum      uint
-	description string
-}
-
-type Gpio struct {
+type GpioSysfs struct {
 	sysGpioPath string
-	gpios       map[int]pin
+	gpios       map[int]gpiopin.Gpiopin
 }
 
-var ctrl = Gpio{
-	sysGpioPath: "/sys/class/gpio",
+var ctrl = GpioSysfs{
+	sysGpioPath: "",
 }
 
 func exportGpio(sysGpio uint) error {
@@ -37,20 +33,20 @@ func checkGpio(sysGpio uint) bool {
 	return false
 }
 
-func New(gpioPath string, cfg []config.PinConfig) (*Gpio, error) {
+func NewGpioSysfs(gpioPath string, cfg []config.PinConfig) (*GpioSysfs, error) {
 	if gpioPath != "" {
 		ctrl.sysGpioPath = gpioPath
 	}
 	var err error
 
-	ctrl.gpios = make(map[int]pin)
+	ctrl.gpios = make(map[int]gpiopin.Gpiopin)
 
 	for _, val := range cfg {
-		newPin := pin{sysNum: val.SysGpio, description: val.Description}
+		newPin := gpiopin.Gpiopin{SysNum: val.SysGpio, Description: val.Description}
 		ctrl.gpios[val.ID] = newPin
 
-		if !checkGpio(ctrl.gpios[val.ID].sysNum) {
-			err = exportGpio(ctrl.gpios[val.ID].sysNum)
+		if !checkGpio(ctrl.gpios[val.ID].SysNum) {
+			err = exportGpio(ctrl.gpios[val.ID].SysNum)
 			if err != nil {
 				return nil, err
 			}
@@ -71,8 +67,8 @@ func New(gpioPath string, cfg []config.PinConfig) (*Gpio, error) {
 	return &ctrl, nil
 }
 
-func (ctrl *Gpio) SetDirection(id int, direction string) error {
-	target := fmt.Sprintf("%s/gpio%d/direction", ctrl.sysGpioPath, ctrl.gpios[id].sysNum)
+func (ctrl *GpioSysfs) SetDirection(id int, direction string) error {
+	target := fmt.Sprintf("%s/gpio%d/direction", ctrl.sysGpioPath, ctrl.gpios[id].SysNum)
 	var d string
 	switch direction {
 	case "out", "o":
@@ -88,8 +84,8 @@ func (ctrl *Gpio) SetDirection(id int, direction string) error {
 	return err
 }
 
-func (ctrl *Gpio) GetDirection(id int) (string, error) {
-	target := fmt.Sprintf("%s/gpio%d/direction", ctrl.sysGpioPath, ctrl.gpios[id].sysNum)
+func (ctrl *GpioSysfs) GetDirection(id int) (string, error) {
+	target := fmt.Sprintf("%s/gpio%d/direction", ctrl.sysGpioPath, ctrl.gpios[id].SysNum)
 	dat, err := ioutil.ReadFile(target)
 	if err != nil {
 		return "", err
@@ -105,7 +101,7 @@ func (ctrl *Gpio) GetDirection(id int) (string, error) {
 	return val, err
 }
 
-func (ctrl *Gpio) SetState(id int, state uint) error {
+func (ctrl *GpioSysfs) SetState(id int, state uint) error {
 	dir, err := ctrl.GetDirection(id)
 	if err != nil {
 		return err
@@ -115,7 +111,7 @@ func (ctrl *Gpio) SetState(id int, state uint) error {
 		return nil
 	}
 
-	target := fmt.Sprintf("%s/gpio%d/value", ctrl.sysGpioPath, ctrl.gpios[id].sysNum)
+	target := fmt.Sprintf("%s/gpio%d/value", ctrl.sysGpioPath, ctrl.gpios[id].SysNum)
 	var d string
 	if state == 0 {
 		d = "0\n"
@@ -128,8 +124,8 @@ func (ctrl *Gpio) SetState(id int, state uint) error {
 	return err
 }
 
-func (ctrl *Gpio) GetState(id int) (uint, error) {
-	target := fmt.Sprintf("%s/gpio%d/value", ctrl.sysGpioPath, ctrl.gpios[id].sysNum)
+func (ctrl *GpioSysfs) GetState(id int) (uint, error) {
+	target := fmt.Sprintf("%s/gpio%d/value", ctrl.sysGpioPath, ctrl.gpios[id].SysNum)
 	dat, err := ioutil.ReadFile(target)
 	if err != nil {
 		return 0, err
@@ -149,10 +145,10 @@ func (ctrl *Gpio) GetState(id int) (uint, error) {
 	return 0, nil
 }
 
-func (ctrl *Gpio) GetNumberOfGpios() int {
+func (ctrl *GpioSysfs) GetNumberOfGpios() int {
 	return len(ctrl.gpios)
 }
 
-func (ctrl *Gpio) GetDescription(id int) string {
-	return ctrl.gpios[id].description
+func (ctrl *GpioSysfs) GetDescription(id int) string {
+	return ctrl.gpios[id].Description
 }
