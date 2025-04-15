@@ -26,7 +26,7 @@ type Config struct {
 	SysGpioPath   string      `json:"sys_gpio_path"`
 	CommandIDs    CmdIds      `json:"cmd_id"`
 	Gpios         []PinConfig `json:"gpios"`
-	GpioType      string      `json:"gpio_type"`
+	GpioInterface      string      `json:"gpio_interface"`
 }
 
 var cfg Config

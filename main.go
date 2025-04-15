@@ -49,17 +49,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if !strings.Contains("sysfs;chardev", cfg.GpioType) {
+	if !strings.Contains("sysfs;chardev", cfg.GpioInterface) {
 		log.Fatalf("Configuration Error! "+
 			"The 'gpio_type' should be one of the accepted values: "+
-			"[sysfs/chardev]. Current value is '%v'", cfg.GpioType)
+			"[sysfs/chardev]. Current value is '%v'", cfg.GpioInterface)
 	}
 
-	log.Println("GPIO type:", cfg.GpioType)
+	log.Println("GPIO type:", cfg.GpioInterface)
 
 	var gpio iface.IGpio
 
-	switch cfg.GpioType {
+	switch cfg.GpioInterface {
 	case "sysfs":
 		gpio, err = sysfs.NewGpioSysfs(cfg.SysGpioPath, cfg.Gpios)
 		if err != nil {
@@ -71,7 +71,7 @@ func main() {
 			log.Fatal(err)
 		}
 	default:
-		log.Fatalf("Error! GPIO interface '%v' is not implemented!", cfg.GpioType)
+		log.Fatalf("Error! GPIO interface '%v' is not implemented!", cfg.GpioInterface)
 	}
 
 	flash, err := flashromControl.New(cfg.FlashromBin)
