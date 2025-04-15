@@ -1,7 +1,8 @@
-package gpioControl
+package chardev
 
 import (
 	"3mdeb/RteCtrl/pkg/config"
+	gpiopin "3mdeb/RteCtrl/pkg/gpiocontrol/type"
 	"fmt"
 
 	"github.com/warthog618/go-gpiocdev"
@@ -9,11 +10,11 @@ import (
 
 type GpioChardev struct {
 	sysGpioPath string
-	gpios       map[int]pin
+	gpios       map[int]gpiopin.Gpiopin
 }
 
 func (ctrl *GpioChardev) GetPinNumByID(id int) int {
-	return int(ctrl.gpios[id].sysNum)
+	return int(ctrl.gpios[id].SysNum)
 }
 
 func RequestLine(sysGpio int, options ...gpiocdev.LineReqOption) (*gpiocdev.Line, error) {
@@ -53,13 +54,9 @@ func CloseLine(line *gpiocdev.Line) error {
 
 func NewGpioChardev(gpioPath string, cfg []config.PinConfig) (*GpioChardev, error) {
 	fmt.Printf("Initializing Chardev Gpio interface\n")
-	if gpioPath != "" {
-		ctrl.sysGpioPath = gpioPath
-	}
-
-	gpios := make(map[int]pin)
+	gpios := make(map[int]gpiopin.Gpiopin)
 	for _, val := range cfg {
-		newPin := pin{sysNum: val.SysGpio, description: val.Description}
+		newPin := gpiopin.Gpiopin{SysNum: val.SysGpio, Description: val.Description}
 		gpios[val.ID] = newPin
 	}
 
@@ -165,5 +162,5 @@ func (ctrl *GpioChardev) GetNumberOfGpios() int {
 }
 
 func (ctrl *GpioChardev) GetDescription(id int) string {
-	return ctrl.gpios[id].description
+	return ctrl.gpios[id].Description
 }

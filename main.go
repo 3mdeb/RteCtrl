@@ -3,7 +3,9 @@ package main
 import (
 	"3mdeb/RteCtrl/pkg/config"
 	"3mdeb/RteCtrl/pkg/flashromControl"
-	"3mdeb/RteCtrl/pkg/gpioControl"
+	"3mdeb/RteCtrl/pkg/gpiocontrol/chardev"
+	"3mdeb/RteCtrl/pkg/gpiocontrol/iface"
+	"3mdeb/RteCtrl/pkg/gpiocontrol/sysfs"
 	"3mdeb/RteCtrl/pkg/restServer"
 	"flag"
 	"log"
@@ -18,14 +20,14 @@ var (
 	configFilePath = flag.String("c", "/etc/RteCtrl/RteCtrl.cfg", "path to config file")
 )
 
-func pressButton(g *gpioControl.GpioSysfs, id int, t time.Duration) {
+func pressButton(g *sysfs.GpioSysfs, id int, t time.Duration) {
 	g.SetDirection(id, "out")
 	g.SetState(id, 1)
 	time.Sleep(t)
 	g.SetState(id, 0)
 }
 
-func toggleButton(g *gpioControl.GpioSysfs, id int) {
+func toggleButton(g *sysfs.GpioSysfs, id int) {
 	g.SetDirection(id, "out")
 	val, _ := g.GetState(id)
 	if val == 0 {
@@ -55,16 +57,16 @@ func main() {
 
 	log.Println("GPIO type:", cfg.GpioType)
 
-	var gpio gpioControl.IGpio
+	var gpio iface.IGpio
 
 	switch cfg.GpioType {
 	case "sysfs":
-		gpio, err = gpioControl.NewGpioSysfs(cfg.SysGpioPath, cfg.Gpios)
+		gpio, err = sysfs.NewGpioSysfs(cfg.SysGpioPath, cfg.Gpios)
 		if err != nil {
 			log.Fatal(err)
 		}
 	case "chardev":
-		gpio, err = gpioControl.NewGpioChardev(cfg.SysGpioPath, cfg.Gpios)
+		gpio, err = chardev.NewGpioChardev(cfg.SysGpioPath, cfg.Gpios)
 		if err != nil {
 			log.Fatal(err)
 		}

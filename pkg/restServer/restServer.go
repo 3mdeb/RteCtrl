@@ -2,7 +2,7 @@ package restServer
 
 import (
 	"3mdeb/RteCtrl/pkg/flashromControl"
-	"3mdeb/RteCtrl/pkg/gpioControl"
+	iface "3mdeb/RteCtrl/pkg/gpiocontrol/iface"
 	"compress/gzip"
 	"crypto/md5"
 	"encoding/json"
@@ -24,7 +24,7 @@ import (
 type RestServer struct {
 	RestPrefix  string
 	RomFilename string
-	Gpio        gpioControl.IGpio
+	Gpio        iface.IGpio
 }
 
 var flash *flashromControl.Flashrom

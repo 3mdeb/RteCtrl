@@ -1,4 +1,4 @@
-package gpioControl
+package iface
 
 type IGpio interface {
 	GetDescription(id int) string
